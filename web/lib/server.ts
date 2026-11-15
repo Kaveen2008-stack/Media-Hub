@@ -2,7 +2,8 @@
 export const PD = "https://pixeldrain.com/api";
 
 export const pdHeaders = (): HeadersInit => ({
-  Authorization: "Basic " + btoa(":" + process.env.PIXELDRAIN_API_KEY),
+  Authorization: "Basic " + btoa(":" + (process.env.PIXELDRAIN_API_KEY ?? "").trim()),
+  "User-Agent": "Mozilla/5.0 (compatible; media-hub)",
 });
 
 export interface PdFile {
@@ -14,8 +15,15 @@ export interface PdFile {
 }
 
 export async function listFiles(): Promise<PdFile[]> {
-  const r = await fetch(`${PD}/user/files`, { headers: pdHeaders(), cache: "no-store" });
-  if (!r.ok) throw new Error(`Pixeldrain ${r.status}`);
+  if (!process.env.PIXELDRAIN_API_KEY) throw new Error("PIXELDRAIN_API_KEY is not set on Vercel");
+  let r: Response;
+  try {
+    r = await fetch(`${PD}/user/files`, { headers: pdHeaders(), cache: "no-store" });
+  } catch (e) {
+    const c = (e as { cause?: { code?: string; message?: string } }).cause;
+    throw new Error(`Cannot reach Pixeldrain: ${c?.code ?? c?.message ?? (e as Error).message}`);
+  }
+  if (!r.ok) throw new Error(`Pixeldrain ${r.status}: ${(await r.text()).slice(0, 120)}`);
   return (await r.json()).files ?? [];
 }
 
