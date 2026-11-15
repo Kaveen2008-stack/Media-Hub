@@ -21,4 +21,4 @@ export const deleteFile = (id: string) => j<{ ok: boolean }>(`/api/files/${id}`,
 
 export const streamUrl = (id: string) => `/api/stream/${id}`;
 export const downloadUrl = (id: string) => `https://pixeldrain.com/api/file/${id}?download`;
-export const thumbUrl = (id: string) => `https://pixeldrain.com/api/file/${id}/thumbnail?width=320&height=180`;
+export const thumbUrl = (id: string) => `/api/thumb/${id}`;
