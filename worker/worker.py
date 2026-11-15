@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -24,17 +25,39 @@ def safe_name(name: str) -> str:
     return re.sub(r"[^\w\- ]+", "", name).strip()[:60] or "video"
 
 
-def pd_download(file_id: str, dst: Path) -> None:
-    with requests.get(f"{PD}/file/{file_id}", auth=AUTH, stream=True, timeout=120) as r:
-        r.raise_for_status()
-        with open(dst, "wb") as f:
-            for chunk in r.iter_content(1 << 20):
-                f.write(chunk)
+def pd_download(file_id: str, dst: Path, attempts: int = 3, deadline: int = 600) -> None:
+    """Download with short connect/read timeouts, retries and progress logs."""
+    last: Exception | None = None
+    for n in range(1, attempts + 1):
+        t0 = time.time()
+        try:
+            print(f"  download attempt {n}/{attempts} …", flush=True)
+            with requests.get(f"{PD}/file/{file_id}", auth=AUTH, stream=True,
+                              timeout=(15, 30)) as r:
+                print(f"  HTTP {r.status_code} after {time.time() - t0:.1f}s", flush=True)
+                r.raise_for_status()
+                got, tick = 0, time.time()
+                with open(dst, "wb") as f:
+                    for chunk in r.iter_content(1 << 20):
+                        f.write(chunk)
+                        got += len(chunk)
+                        if time.time() - tick > 5:
+                            print(f"  {got / 1048576:.1f} MB so far", flush=True)
+                            tick = time.time()
+                        if time.time() - t0 > deadline:
+                            raise TimeoutError("download deadline exceeded")
+            print(f"  done: {got / 1048576:.1f} MB in {time.time() - t0:.1f}s", flush=True)
+            return
+        except Exception as e:  # noqa: BLE001
+            last = e
+            print(f"  attempt {n} failed: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+            time.sleep(3)
+    raise RuntimeError(f"Could not download from Pixeldrain: {last}")
 
 
 def pd_upload(path: Path, name: str) -> str:
     with open(path, "rb") as f:
-        r = requests.put(f"{PD}/file/{quote(name)}", data=f, auth=AUTH, timeout=3600)
+        r = requests.put(f"{PD}/file/{quote(name)}", data=f, auth=AUTH, timeout=(15, 900))
     r.raise_for_status()
     return r.json()["id"]
 
