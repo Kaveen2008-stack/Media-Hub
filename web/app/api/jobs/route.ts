@@ -16,7 +16,7 @@ export async function GET() {
       conclusion: r.conclusion,
       created_at: r.created_at,
       url: r.html_url,
-      outputs: files.filter((f) => f.name.startsWith(`out-${r.display_title}-`)).length,
+      outputs: files.filter((f) => f.name.startsWith(`edit-${r.display_title}-`)).length,
     }));
     return Response.json({ jobs });
   } catch (e) {

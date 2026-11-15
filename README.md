@@ -1,19 +1,16 @@
-# Media Hub (GitHub Actions + Pixeldrain + Next.js)
+# Video Editor (Pixeldrain + GitHub Actions + Next.js)
 
-## 1. GitHub
-- Push this repo to a **private** GitHub repo.
-- Settings → Secrets and variables → Actions → add:
-  - `PIXELDRAIN_API_KEY`
-  - `YT_COOKIES` (optional, Netscape cookies.txt text, for sites that block datacenter IPs)
-- Create a fine-grained token (this repo only, **Actions: Read and write**).
+Flow: Pixeldrain videos -> edit in browser (live preview) -> Render on GitHub Actions (FFmpeg) -> edited copy uploaded to Pixeldrain.
 
-## 2. Vercel (or local)
-- Import repo, **Root Directory = web**
-- Env vars: GITHUB_TOKEN, GITHUB_REPO (user/repo), GITHUB_REF (main), PIXELDRAIN_API_KEY, DASHBOARD_PASSWORD
-- Local: cd web && cp .env.local.example .env.local && npm install && npm run dev
+## Setup
+1. Push to a private GitHub repo (root must contain .github/, worker/, web/).
+2. Repo secret: PIXELDRAIN_API_KEY  (YT_COOKIES no longer needed)
+3. Vercel: Root Directory = web. Env vars:
+   GITHUB_TOKEN (Actions: Read and write), GITHUB_REPO, GITHUB_REF=main,
+   PIXELDRAIN_API_KEY, DASHBOARD_PASSWORD
 
-## Flow
-Scan → Actions job writes job-<id>.json to Pixeldrain → dashboard reads and deletes it.
-Process → Actions downloads (yt-dlp) → FFmpeg → uploads out-<id>-<n>-<title>.mp4 → Library.
-Edit → Actions pulls the Pixeldrain file → FFmpeg → uploads a new copy.
-Play streams through /api/stream (Range supported). Download goes direct from Pixeldrain.
+## Features
+Trim, speed 0.25-4x, aspect crop (9:16/1:1/4:5/16:9), zoom+pan, rotate, flip,
+brightness/contrast/saturation/gamma/hue/temperature, B&W/sepia/invert,
+blur/sharpen/vignette/grain, fades, text layers, volume/mute, background music
+(from your Pixeldrain files), resolution + quality.
